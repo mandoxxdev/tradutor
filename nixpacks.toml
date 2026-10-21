@@ -1,0 +1,7 @@
+# O GMP Tradutor deve ser publicado com o Build Pack "Dockerfile" (veja o README).
+# Se o Nixpacks for usado mesmo assim, o container só mostra no log como corrigir,
+# em vez do erro "/bin/bash: -c: option requires an argument".
+providers = []
+
+[start]
+cmd = "sh docker/aviso_nixpacks.sh"

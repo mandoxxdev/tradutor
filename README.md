@@ -168,8 +168,9 @@ apenas servidores sob seu controle.
 
 O repositório tem um `Dockerfile`. No Coolify, na aplicação:
 
-1. **Configuration > General > Build Pack**: troque de *Nixpacks* para **Dockerfile**.
-   (Com Nixpacks o container fica reiniciando com `/bin/bash: -c: option requires an argument`.)
+1. **Configuration > General > Build Pack**: troque de *Nixpacks* para **Dockerfile** e clique
+   em **Save**. Se o log mostrar "ERRO: este container foi montado com o NIXPACKS", essa troca
+   não foi salva. No log de *Deployments*, o build certo começa com `FROM python:3.11-slim`.
 2. **Ports Exposes**: `8765`.
 3. **Domains**: coloque um domínio (o Coolify gera o HTTPS sozinho, o que libera o microfone
    no navegador).
