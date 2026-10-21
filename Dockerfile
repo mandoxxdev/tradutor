@@ -16,11 +16,13 @@ ENV PYTHONUNBUFFERED=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
     HF_HUB_DISABLE_TELEMETRY=1 \
     GMP_HOST=0.0.0.0 \
-    GMP_PORTA=8765
+    GMP_PORTA=8765 \
+    TZ=America/Sao_Paulo
 
-# libgomp1: paralelismo do CTranslate2/onnxruntime; curl: health check do Coolify
+# libgomp1: paralelismo do CTranslate2/onnxruntime; curl: health check do Coolify;
+# tzdata: horário de Brasília na tela e na ata (troque com a variável TZ, se precisar)
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends libgomp1 curl \
+    && apt-get install -y --no-install-recommends libgomp1 curl tzdata \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
