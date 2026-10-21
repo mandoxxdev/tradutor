@@ -1,0 +1,1015 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GMP Tradutor</title>
+<style>
+  /* ------------------------------------------------------------------
+     Tema escuro, letra grande (legível a 3 metros). A escala do texto
+     pode ser ajustada com + e - (fica salva no navegador).
+     ------------------------------------------------------------------ */
+  :root {
+    --fundo: #0b1220;
+    --painel: #111a2c;
+    --borda: #22304a;
+    --texto: #eef3fa;
+    --texto-suave: #9fb0c8;
+    --destaque: #3fa9f5;
+    --destaque-2: #ffb74d;
+    --ok: #4cd97b;
+    --erro: #ff6b6b;
+    --escala: 1;
+    --tam-texto: calc(clamp(22px, 2.1vw, 48px) * var(--escala));
+    --fonte: "Segoe UI", "Segoe UI Variable Text", Roboto, "Noto Sans", "Helvetica Neue", Arial,
+             "Microsoft YaHei", "Yu Gothic UI", "Malgun Gothic", "Nirmala UI", "Leelawadee UI",
+             "Segoe UI Historic", sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: var(--fundo); color: var(--texto); font-family: var(--fonte);
+    overflow: hidden; -webkit-font-smoothing: antialiased;
+  }
+  button {
+    font: inherit; color: var(--texto); background: #1b2740; border: 1px solid var(--borda);
+    border-radius: 10px; padding: .45em 1em; cursor: pointer;
+  }
+  button:hover { background: #24345a; }
+  button.primario { background: var(--destaque); border-color: var(--destaque); color: #06111f; font-weight: 600; }
+  button.primario:hover { filter: brightness(1.1); }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  input, select {
+    font: inherit; color: var(--texto); background: #0e1626; border: 1px solid var(--borda);
+    border-radius: 10px; padding: .5em .8em;
+  }
+  input:focus, select:focus { outline: 2px solid var(--destaque); }
+  [hidden] { display: none !important; }
+
+  .tela { position: absolute; inset: 0; display: flex; flex-direction: column; }
+
+  /* ---------------- Tela inicial ---------------- */
+  #tela-inicial { align-items: center; justify-content: flex-start; padding: 14px 2vw 3vh; overflow: auto; gap: 14px; }
+  .topo-inicial { width: min(1100px, 96vw); display: flex; align-items: center; justify-content: space-between; flex: none; }
+  .marca-topo { color: var(--texto-suave); letter-spacing: .12em; font-size: 14px; text-transform: uppercase; display: flex; align-items: center; gap: 10px; }
+  /* Logo da GMP: fundo claro arredondado para manter as cores originais sobre o tema escuro */
+  .logo { height: 34px; width: auto; display: block; background: #fff; border-radius: 8px; padding: 4px 10px; box-sizing: content-box; }
+  .logo-grande { height: 44px; }
+  .versao-topo { color: var(--texto-suave); font-size: 13px; }
+  .cartao {
+    width: min(1100px, 96vw); background: var(--painel); border: 1px solid var(--borda); flex: none;
+    border-radius: 18px; padding: 28px 32px; display: grid; grid-template-columns: 1.2fr 1fr; gap: 24px 32px;
+  }
+  @media (max-width: 900px) {
+    .cartao { grid-template-columns: 1fr; padding: 20px; }
+    .lista { height: 32vh; }
+  }
+  .cartao h1 { margin: 0 0 6px; font-size: 30px; grid-column: 1 / -1; }
+  .cartao h1 small { display: block; font-size: 16px; font-weight: 400; color: var(--texto-suave); margin-top: 4px; }
+  .coluna-esq, .coluna-dir { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+  .lista { height: 42vh; min-height: 220px; overflow: auto; border: 1px solid var(--borda); border-radius: 12px; background: #0e1626; }
+  .item-idioma {
+    display: flex; align-items: center; gap: 12px; padding: 9px 14px; cursor: pointer; font-size: 18px;
+    border-bottom: 1px solid #16213a;
+  }
+  .item-idioma:hover { background: #16223b; }
+  .item-idioma.marcado { background: #173656; }
+  .item-idioma .nativo { color: var(--texto-suave); }
+  .item-idioma .caixa { width: 22px; height: 22px; border: 2px solid var(--texto-suave); border-radius: 6px; flex: none; display: grid; place-items: center; }
+  .item-idioma.marcado .caixa { background: var(--destaque); border-color: var(--destaque); color: #06111f; font-weight: 700; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; min-height: 36px; }
+  .chip { background: #173656; border: 1px solid #2a5a8a; border-radius: 999px; padding: 4px 12px; font-size: 16px; }
+  .chip button { padding: 0 6px; margin-left: 6px; border: none; background: transparent; color: var(--texto-suave); }
+  .bloco { background: #0e1626; border: 1px solid var(--borda); border-radius: 12px; padding: 14px 16px; }
+  .bloco h2 { margin: 0 0 10px; font-size: 16px; color: var(--texto-suave); text-transform: uppercase; letter-spacing: .08em; }
+  .medidor { height: 14px; background: #0a1020; border: 1px solid var(--borda); border-radius: 999px; overflow: hidden; }
+  .medidor > div { height: 100%; width: 0%; background: linear-gradient(90deg, var(--ok), #ffd166 70%, var(--erro)); transition: width 80ms linear; }
+  .sensibilidade { display: flex; align-items: center; gap: 10px; margin-top: 12px; font-size: 15px; color: var(--texto-suave); }
+  .sensibilidade input { flex: 1; accent-color: var(--destaque); }
+  .sensibilidade span { min-width: 9em; color: var(--texto); }
+  .acoes { display: flex; gap: 12px; justify-content: flex-end; flex-wrap: wrap; grid-column: 1 / -1; align-items: center; }
+  .acoes .status { margin-right: auto; color: var(--texto-suave); }
+  .status.ok { color: var(--ok); }
+  .status.erro { color: var(--erro); }
+  .dica { color: var(--texto-suave); font-size: 15px; }
+  .pequeno { font-size: 14px; color: var(--texto-suave); }
+
+  /* ---------------- Tela principal ---------------- */
+  .barra {
+    display: flex; align-items: center; gap: 18px; padding: 10px 18px; background: var(--painel);
+    border-bottom: 1px solid var(--borda); font-size: 16px; flex: none;
+  }
+  .barra .marca { letter-spacing: .14em; text-transform: uppercase; color: var(--texto-suave); white-space: nowrap; display: flex; align-items: center; }
+  .barra .indicadores { display: flex; gap: 10px; align-items: center; flex: 1; min-width: 0; flex-wrap: wrap; }
+  .ind { padding: 4px 12px; border-radius: 999px; background: #1b2740; border: 1px solid var(--borda); white-space: nowrap; }
+  .ind.ouvindo { background: #0f3a2a; border-color: #1f7a52; color: #9af0c0; }
+  .ind.ouvindo::before { content: "●"; margin-right: 8px; color: var(--ok); animation: pulsar 1s infinite; }
+  .ind.processando { background: #3a2a0f; border-color: #8a6a1f; color: #ffd98a; }
+  .ind.pausado { background: #3a1a1a; border-color: #8a2f2f; color: #ffb3b3; }
+  .ind.aviso { background: #3a2a0f; border-color: var(--destaque-2); color: var(--destaque-2); }
+  .ind.idioma { color: var(--texto-suave); }
+  @keyframes pulsar { 0%, 100% { opacity: 1; } 50% { opacity: .25; } }
+  .barra .direita { display: flex; gap: 10px; align-items: center; }
+  .barra .medidor { width: 140px; }
+  .barra button { padding: .35em .9em; font-size: 15px; }
+
+  .cabecalhos {
+    display: grid; gap: 2px; padding: 8px 14px 0; flex: none; background: var(--fundo);
+  }
+  .cabecalho {
+    font-size: calc(var(--tam-texto) * .55); text-transform: uppercase; letter-spacing: .08em;
+    color: var(--texto-suave); padding: 8px 14px; border-bottom: 3px solid var(--borda); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .cabecalho .nativo { text-transform: none; letter-spacing: 0; color: #c8d6ea; }
+  .cabecalho.pt { border-bottom-color: var(--destaque); }
+  .cabecalho.vis { border-bottom-color: var(--destaque-2); }
+  .abas { display: flex; gap: 6px; flex-wrap: wrap; }
+  .aba { cursor: pointer; padding: 6px 12px; border-radius: 10px 10px 0 0; border: 1px solid var(--borda); border-bottom: none; background: #0e1626; }
+  .aba.ativa { background: #2a3a1a; border-color: var(--destaque-2); color: var(--texto); }
+  .aba .tecla { font-size: .75em; color: var(--texto-suave); margin-right: 6px; }
+
+  .falas { flex: 1; overflow-y: auto; padding: 10px 14px 20px; display: flex; flex-direction: column; justify-content: flex-start; scroll-behavior: smooth; }
+  .falas::after { content: ""; display: block; flex: 1; } /* empurra as falas para o rodapé quando há poucas */
+  .falas > .espaco { flex: 1; }
+  .linha {
+    display: grid; gap: 2px; margin-top: 10px; border-radius: 14px; border: 1px solid transparent;
+    font-size: var(--tam-texto); line-height: 1.3;
+  }
+  .celula { padding: 12px 16px; border-radius: 12px; background: var(--painel); min-width: 0; overflow-wrap: anywhere; }
+  .celula.original { color: var(--texto); }
+  .celula.traducao { color: #d7e6ff; }
+  .celula.vazia { background: transparent; color: #3a4a66; text-align: center; }
+  .celula .meta { display: block; font-size: .5em; color: var(--texto-suave); margin-bottom: 4px; letter-spacing: .06em; }
+  .celula .meta .chip-fora { color: var(--destaque-2); margin-left: 8px; }
+  .linha.atual { border-color: var(--destaque); box-shadow: 0 0 0 1px rgba(63,169,245,.25), 0 8px 30px rgba(0,0,0,.35); }
+  .linha.atual .celula { background: #152238; }
+  .linha.parcial .celula { font-style: italic; color: #b9c7dc; }
+  .linha.parcial .celula.original::after, .linha.parcial .celula.traducao:not(.vazia)::after { content: " …"; color: var(--destaque); font-style: normal; animation: pulsar 1s infinite; }
+  .linha .celula.erro { color: var(--erro); font-size: .7em; }
+
+  .rodape { flex: none; padding: 6px 18px; font-size: 13px; color: #5b6d8a; background: var(--painel); border-top: 1px solid var(--borda); display: flex; justify-content: space-between; }
+  .toast {
+    position: fixed; left: 50%; bottom: 60px; transform: translateX(-50%); background: #1b2740; border: 1px solid var(--borda);
+    padding: 12px 20px; border-radius: 12px; font-size: 17px; max-width: 80vw; z-index: 50; box-shadow: 0 10px 30px rgba(0,0,0,.5);
+  }
+  .toast.erro { border-color: var(--erro); }
+  .overlay {
+    position: fixed; inset: 0; background: rgba(5,9,18,.8); display: grid; place-items: center; font-size: 26px; z-index: 40; text-align: center; padding: 20px;
+  }
+  .overlay .caixa { background: var(--painel); border: 1px solid var(--borda); border-radius: 16px; padding: 28px 36px; max-width: 800px; }
+  .overlay .caixa .pequeno { margin-top: 10px; }
+  #btn-ir-fim { position: fixed; right: 24px; bottom: 60px; z-index: 30; }
+  .confirmacao { display: flex; gap: 12px; justify-content: center; margin-top: 18px; }
+</style>
+</head>
+<body>
+
+<!-- ===================== TELA INICIAL ===================== -->
+<section id="tela-inicial" class="tela">
+  <div class="topo-inicial">
+    <div class="marca-topo"><img id="logo-inicial" class="logo logo-grande" src="/logo.png" alt="GMP Industriais" hidden><span id="marca-inicial">GMP Industriais</span> · GMP Tradutor</div>
+    <div class="versao-topo" id="versao-topo"></div>
+  </div>
+  <div class="cartao">
+    <h1>Idioma do visitante
+      <small>Marque um ou mais idiomas. A equipe da GMP fala sempre <strong>português</strong>; a tradução é automática nos dois sentidos.</small>
+    </h1>
+
+    <div class="coluna-esq">
+      <input id="busca" type="search" placeholder="Buscar idioma (ex.: italiano, english, 中文, deutsch)…" autocomplete="off">
+      <div id="lista-idiomas" class="lista"></div>
+      <div id="selecionados" class="chips"></div>
+    </div>
+
+    <div class="coluna-dir">
+      <div class="bloco">
+        <h2>Microfone</h2>
+        <select id="sel-mic" style="width:100%"></select>
+        <div style="height:10px"></div>
+        <div class="medidor"><div id="nivel-inicial"></div></div>
+        <label class="sensibilidade">Sensibilidade <input id="sens" type="range" min="1" max="10" step="1" value="4"> <span id="sens-valor">até 4×</span></label>
+        <p class="dica" id="dica-mic">Fale da distância em que as pessoas vão ficar: a barra deve chegar ao meio. Se ficar baixa, aumente a sensibilidade. Um microfone de mesa USB funciona melhor que o do notebook.</p>
+      </div>
+      <div class="bloco">
+        <h2>Sistema</h2>
+        <p id="status-modelos" class="status">Conectando ao servidor…</p>
+        <p id="info-modelos" class="pequeno"></p>
+        <div id="senha-box" hidden>
+          <input id="senha" type="password" placeholder="Senha de acesso" style="width:100%">
+          <p class="pequeno">Este servidor exige senha (definida em config.json).</p>
+        </div>
+      </div>
+      <div class="bloco">
+        <h2>Atalhos</h2>
+        <p class="pequeno">Espaço: pausar/retomar · Esc: sair da tela cheia · E: exportar ata · L: trocar idiomas · F: tela cheia · + e −: tamanho do texto</p>
+      </div>
+    </div>
+
+    <div class="acoes">
+      <span class="status" id="status-acoes"></span>
+      <button id="btn-cancelar-troca" hidden>Cancelar</button>
+      <button id="btn-continuar" hidden>Continuar reunião atual</button>
+      <button id="btn-iniciar" class="primario" disabled>Iniciar reunião</button>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== TELA PRINCIPAL ===================== -->
+<section id="tela-principal" class="tela" hidden>
+  <header class="barra">
+    <div class="marca"><img id="logo-barra" class="logo" src="/logo.png" alt="GMP Industriais" hidden><span id="marca-barra">GMP Industriais</span></div>
+    <div class="indicadores">
+      <span id="ind-estado" class="ind">aguardando</span>
+      <span id="ind-idioma" class="ind idioma" hidden></span>
+      <span id="ind-aviso" class="ind aviso" hidden></span>
+    </div>
+    <div class="direita">
+      <div class="medidor" title="Nível do microfone"><div id="nivel"></div></div>
+      <button id="btn-pausar" title="Espaço">Pausar</button>
+      <button id="btn-idiomas" title="L">Idiomas</button>
+      <button id="btn-exportar" title="E">Exportar</button>
+      <button id="btn-tela-cheia" title="F">Tela cheia</button>
+    </div>
+  </header>
+  <div id="cabecalhos" class="cabecalhos"></div>
+  <main id="falas" class="falas"></main>
+  <footer class="rodape">
+    <span>Espaço: pausar/retomar · Esc: sair da tela cheia · E: exportar · L: idiomas · F: tela cheia · + −: texto · N: nova reunião</span>
+    <span id="rodape-info"></span>
+  </footer>
+  <button id="btn-ir-fim" hidden>▼ Ir para a fala mais recente</button>
+</section>
+
+<div id="toast" class="toast" hidden></div>
+<div id="overlay" class="overlay" hidden><div class="caixa" id="overlay-texto"></div></div>
+
+<script>
+(() => {
+  "use strict";
+
+  // ------------------------------------------------------------------
+  // Estado da interface
+  // ------------------------------------------------------------------
+  const $ = (id) => document.getElementById(id);
+  const estado = {
+    ws: null,
+    conectado: false,
+    pronto: false,
+    exigeSenha: false,
+    idiomasDisponiveis: [],      // lista vinda do servidor
+    portugues: null,
+    porCodigo: new Map(),
+    selecionados: [],            // códigos escolhidos na tela inicial
+    idiomasSessao: [],           // códigos em vigor na reunião
+    reuniaoAtiva: false,
+    modoTroca: false,            // tela inicial aberta só para trocar idiomas
+    pausado: false,
+    abaAtiva: 0,
+    falas: new Map(),            // id -> {dados, elemento}
+    ultimoId: null,
+    nivel: 0,
+    micStream: null,
+    audioCtx: null,
+    micId: localStorage.getItem("gmp.mic") || "",
+    tentativasWs: 0,
+    totalFalas: 0,
+    audioCfg: {},                // opções de áudio vindas do config.json (via /info)
+    noCaptador: null,
+    ganhoAtual: 1,
+  };
+  const token = () => sessionStorage.getItem("gmp.senha") || "";
+  // Envia um comando ao servidor (ignora se a conexão caiu; o "iniciar" é reenviado ao reconectar)
+  function enviar(obj) {
+    if (estado.ws && estado.ws.readyState === WebSocket.OPEN) { estado.ws.send(JSON.stringify(obj)); return true; }
+    toast("Sem conexão com o servidor no momento…", true, 2500);
+    return false;
+  }
+
+  // Escala do texto (+ / -)
+  let escala = parseFloat(localStorage.getItem("gmp.escala") || "1");
+  const aplicarEscala = () => document.documentElement.style.setProperty("--escala", String(escala));
+  aplicarEscala();
+
+  // ------------------------------------------------------------------
+  // Utilidades
+  // ------------------------------------------------------------------
+  let toastTimer = null;
+  function toast(msg, erro = false, ms = 4500) {
+    const t = $("toast");
+    t.textContent = msg;
+    t.classList.toggle("erro", erro);
+    t.hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { t.hidden = true; }, ms);
+  }
+  function overlay(html) {
+    const o = $("overlay");
+    if (!html) { o.hidden = true; return; }
+    $("overlay-texto").innerHTML = html;
+    o.hidden = false;
+  }
+  function rotulo(codigo) {
+    const i = estado.porCodigo.get(codigo);
+    return i ? i.rotulo : codigo.toUpperCase();
+  }
+  function infoIdioma(codigo) {
+    return estado.porCodigo.get(codigo) || { codigo, rotulo: codigo.toUpperCase(), nome_pt: codigo, nome_nativo: "", bcp47: codigo, rtl: false };
+  }
+  function normalizar(s) {
+    return (s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+  }
+
+  // ------------------------------------------------------------------
+  // Tela inicial: lista de idiomas com busca
+  // ------------------------------------------------------------------
+  function renderizarLista() {
+    const termo = normalizar($("busca").value.trim());
+    const lista = $("lista-idiomas");
+    lista.innerHTML = "";
+    const itens = estado.idiomasDisponiveis.filter(i =>
+      !termo || normalizar(i.nome_pt).includes(termo) || normalizar(i.nome_nativo).includes(termo) || i.codigo.toLowerCase().includes(termo)
+    );
+    // Idiomas selecionados primeiro, depois os mais usados, depois o restante em ordem alfabética
+    const populares = ["en", "es", "it", "de", "fr", "zh", "ja", "ko"];
+    itens.sort((a, b) => {
+      const sa = estado.selecionados.includes(a.codigo) ? 0 : (populares.includes(a.codigo) ? 1 : 2);
+      const sb = estado.selecionados.includes(b.codigo) ? 0 : (populares.includes(b.codigo) ? 1 : 2);
+      if (sa !== sb) return sa - sb;
+      if (sa === 1) return populares.indexOf(a.codigo) - populares.indexOf(b.codigo);
+      return a.nome_pt.localeCompare(b.nome_pt, "pt");
+    });
+    for (const i of itens) {
+      const el = document.createElement("div");
+      el.className = "item-idioma" + (estado.selecionados.includes(i.codigo) ? " marcado" : "");
+      el.innerHTML = `<span class="caixa">${estado.selecionados.includes(i.codigo) ? "✓" : ""}</span>
+        <span><strong>${i.nome_pt.toUpperCase()}</strong> · <span class="nativo" lang="${i.bcp47}">${i.nome_nativo}</span></span>`;
+      el.onclick = () => alternarIdioma(i.codigo);
+      lista.appendChild(el);
+    }
+    if (!itens.length) lista.innerHTML = `<div class="item-idioma">Nenhum idioma encontrado.</div>`;
+    renderizarChips();
+  }
+  function alternarIdioma(codigo) {
+    const k = estado.selecionados.indexOf(codigo);
+    if (k >= 0) estado.selecionados.splice(k, 1); else estado.selecionados.push(codigo);
+    renderizarLista();
+    atualizarBotoesInicio();
+  }
+  function renderizarChips() {
+    const c = $("selecionados");
+    c.innerHTML = "";
+    if (!estado.selecionados.length) { c.innerHTML = `<span class="dica">Nenhum idioma selecionado ainda.</span>`; return; }
+    for (const cod of estado.selecionados) {
+      const i = infoIdioma(cod);
+      const el = document.createElement("span");
+      el.className = "chip";
+      el.innerHTML = `${i.nome_pt.toUpperCase()} · <span lang="${i.bcp47}">${i.nome_nativo}</span><button title="Remover">✕</button>`;
+      el.querySelector("button").onclick = () => alternarIdioma(cod);
+      c.appendChild(el);
+    }
+  }
+  function atualizarBotoesInicio() {
+    const ok = estado.pronto && estado.selecionados.length > 0 && estado.conectado;
+    $("btn-iniciar").disabled = !ok;
+    $("btn-continuar").disabled = !ok;
+    $("btn-iniciar").textContent = estado.modoTroca ? "Aplicar idiomas" : (estado.totalFalas > 0 ? "Nova reunião" : "Iniciar reunião");
+    $("btn-continuar").hidden = estado.modoTroca || estado.totalFalas === 0;
+    $("btn-continuar").textContent = `Continuar reunião atual (${estado.totalFalas} fala${estado.totalFalas === 1 ? "" : "s"})`;
+    $("btn-cancelar-troca").hidden = !estado.modoTroca;
+    const s = $("status-acoes");
+    if (!estado.conectado) s.textContent = "Sem conexão com o servidor…";
+    else if (!estado.pronto) s.textContent = "Aguardando os modelos carregarem…";
+    else if (!estado.selecionados.length) s.textContent = "Escolha pelo menos um idioma.";
+    else s.textContent = "";
+  }
+  $("busca").addEventListener("input", renderizarLista);
+
+  // ------------------------------------------------------------------
+  // Microfone: captura no navegador e envio por WebSocket (PCM 16 kHz)
+  // ------------------------------------------------------------------
+  const codigoWorklet = `
+    class Captador extends AudioWorkletProcessor {
+      constructor(opts) {
+        super();
+        const po = opts.processorOptions || {};
+        this.taxa = po.taxaEntrada || sampleRate;
+        this.razao = this.taxa / 16000;
+        this.pos = 1; this.ultimo = 0;
+        this.acum = new Float32Array(1280); this.n = 0;   // pacotes de 80 ms
+        // Ganho automático: amplifica fala fraca (pessoa longe do microfone) até um alvo,
+        // nunca acima de ganhoMax; reduz na hora se o sinal for estourar.
+        this.ganhoMax = Math.max(1, po.ganhoMax || 4);
+        this.ganho = 1;
+        this.port.onmessage = (ev) => {
+          const d = ev.data || {};
+          if (d.tipo === "config" && d.ganhoMax) {
+            this.ganhoMax = Math.max(1, d.ganhoMax);
+            if (this.ganho > this.ganhoMax) this.ganho = this.ganhoMax;
+          }
+        };
+      }
+      reamostrar(entrada) {
+        if (this.razao === 1) return entrada;
+        const buf = new Float32Array(entrada.length + 1);
+        buf[0] = this.ultimo; buf.set(entrada, 1);
+        const saida = [];
+        let pos = this.pos;
+        while (pos + 1 < buf.length) {
+          const i = Math.floor(pos), f = pos - i;
+          saida.push(buf[i] * (1 - f) + buf[i + 1] * f);
+          pos += this.razao;
+        }
+        this.pos = pos - entrada.length;
+        this.ultimo = entrada[entrada.length - 1];
+        return Float32Array.from(saida);
+      }
+      process(inputs) {
+        const canal = inputs[0] && inputs[0][0];
+        if (!canal) return true;
+        const dados = this.reamostrar(canal);
+        for (let i = 0; i < dados.length; i++) {
+          this.acum[this.n++] = dados[i];
+          if (this.n === this.acum.length) {
+            let picoBruto = 0;
+            for (let j = 0; j < this.acum.length; j++) {
+              const a = Math.abs(this.acum[j]);
+              if (a > picoBruto) picoBruto = a;
+            }
+            if (picoBruto * this.ganho > 0.95) {
+              this.ganho = Math.max(1, 0.95 / picoBruto);              // vai estourar: baixa já
+            } else if (picoBruto > 0.004) {                             // há sinal (não é silêncio)
+              const alvo = Math.min(this.ganhoMax, 0.6 / picoBruto);
+              this.ganho += (alvo - this.ganho) * (alvo > this.ganho ? 0.15 : 0.3);
+            }
+            let soma = 0, pico = 0;
+            const pcm = new Int16Array(this.acum.length);
+            for (let j = 0; j < this.acum.length; j++) {
+              const v = Math.max(-1, Math.min(1, this.acum[j] * this.ganho));
+              soma += v * v; if (Math.abs(v) > pico) pico = Math.abs(v);
+              pcm[j] = v < 0 ? v * 32768 : v * 32767;
+            }
+            const rms = Math.sqrt(soma / this.acum.length);
+            this.port.postMessage({ tipo: "pcm", buffer: pcm.buffer, rms, pico, ganho: this.ganho }, [pcm.buffer]);
+            this.n = 0;
+          }
+        }
+        return true;
+      }
+    }
+    registerProcessor("captador", Captador);
+  `;
+  const urlWorklet = URL.createObjectURL(new Blob([codigoWorklet], { type: "application/javascript" }));
+
+  async function listarMicrofones() {
+    try {
+      const dispositivos = await navigator.mediaDevices.enumerateDevices();
+      const sel = $("sel-mic");
+      sel.innerHTML = "";
+      const entradas = dispositivos.filter(d => d.kind === "audioinput");
+      for (const d of entradas) {
+        const o = document.createElement("option");
+        o.value = d.deviceId;
+        o.textContent = d.label || `Microfone ${sel.length + 1}`;
+        sel.appendChild(o);
+      }
+      if (estado.micId && entradas.some(d => d.deviceId === estado.micId)) sel.value = estado.micId;
+      else estado.micId = sel.value || "";
+    } catch (e) { /* sem permissão ainda */ }
+  }
+
+  async function iniciarMicrofone() {
+    pararMicrofone();
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      $("dica-mic").textContent = "Este navegador não permite usar o microfone aqui. Abra a interface em http://localhost ou em HTTPS.";
+      return;
+    }
+    const a = estado.audioCfg || {};
+    const restricoes = {
+      audio: {
+        deviceId: estado.micId ? { exact: estado.micId } : undefined,
+        channelCount: 1, echoCancellation: false,
+        noiseSuppression: a.supressao_ruido !== false,
+        autoGainControl: a.ganho_automatico_navegador !== false,
+      },
+    };
+    try {
+      estado.micStream = await navigator.mediaDevices.getUserMedia(restricoes);
+    } catch (e) {
+      try { estado.micStream = await navigator.mediaDevices.getUserMedia({ audio: true }); }
+      catch (e2) {
+        $("dica-mic").textContent = "Não foi possível acessar o microfone: " + (e2.message || e2.name) + ". Verifique a permissão do navegador.";
+        return;
+      }
+    }
+    await listarMicrofones();
+    let ctx;
+    try { ctx = new AudioContext({ sampleRate: 16000 }); }
+    catch (e) { ctx = new AudioContext(); }
+    estado.audioCtx = ctx;
+    await ctx.audioWorklet.addModule(urlWorklet);
+    const fonte = ctx.createMediaStreamSource(estado.micStream);
+    const no = new AudioWorkletNode(ctx, "captador", {
+      processorOptions: { taxaEntrada: ctx.sampleRate, ganhoMax: sensibilidadeAtual() },
+    });
+    estado.noCaptador = no;
+    const mudo = ctx.createGain(); mudo.gain.value = 0;   // mantém o grafo ativo sem reproduzir o áudio
+    fonte.connect(no); no.connect(mudo); mudo.connect(ctx.destination);
+    no.port.onmessage = (ev) => {
+      const d = ev.data;
+      if (d.tipo !== "pcm") return;
+      estado.nivel = Math.min(1, d.rms * 7);
+      estado.ganhoAtual = d.ganho;
+      if (estado.reuniaoAtiva && !estado.pausado && estado.ws && estado.ws.readyState === WebSocket.OPEN) {
+        estado.ws.send(d.buffer);
+      }
+    };
+    if (ctx.state === "suspended") { try { await ctx.resume(); } catch (e) {} }
+  }
+  function pararMicrofone() {
+    if (estado.micStream) { for (const t of estado.micStream.getTracks()) t.stop(); estado.micStream = null; }
+    if (estado.audioCtx) { try { estado.audioCtx.close(); } catch (e) {} estado.audioCtx = null; }
+  }
+  $("sel-mic").addEventListener("change", () => {
+    estado.micId = $("sel-mic").value;
+    localStorage.setItem("gmp.mic", estado.micId);
+    iniciarMicrofone();
+  });
+  // Sensibilidade = ganho máximo do captador (1 = sem amplificação, 10 = até 10x / +20 dB)
+  function sensibilidadeAtual() {
+    const salva = parseInt(localStorage.getItem("gmp.sensibilidade") || "", 10);
+    if (salva >= 1 && salva <= 10) return salva;
+    const padrao = parseInt((estado.audioCfg && estado.audioCfg.ganho_maximo) || 4, 10);
+    return Math.min(10, Math.max(1, padrao || 4));
+  }
+  function aplicarSensibilidade(valor, salvar) {
+    valor = Math.min(10, Math.max(1, parseInt(valor, 10) || 4));
+    $("sens").value = valor;
+    $("sens-valor").textContent = valor === 1 ? "sem amplificação" : `até ${valor}×`;
+    if (salvar) localStorage.setItem("gmp.sensibilidade", String(valor));
+    if (estado.noCaptador) estado.noCaptador.port.postMessage({ tipo: "config", ganhoMax: valor });
+  }
+  $("sens").addEventListener("input", () => aplicarSensibilidade($("sens").value, true));
+  // Medidor de nível (suavizado)
+  let nivelVisual = 0;
+  setInterval(() => {
+    nivelVisual = Math.max(estado.nivel, nivelVisual * 0.8);
+    const pct = Math.round(nivelVisual * 100) + "%";
+    $("nivel").style.width = pct;
+    $("nivel-inicial").style.width = pct;
+  }, 60);
+
+  // ------------------------------------------------------------------
+  // WebSocket
+  // ------------------------------------------------------------------
+  function conectar() {
+    const esquema = location.protocol === "https:" ? "wss" : "ws";
+    const url = `${esquema}://${location.host}/ws?token=${encodeURIComponent(token())}`;
+    const ws = new WebSocket(url);
+    ws.binaryType = "arraybuffer";
+    estado.ws = ws;
+    ws.onopen = () => {
+      estado.conectado = true;
+      estado.tentativasWs = 0;
+      if (estado.reuniaoAtiva) {
+        overlay(null);
+        ws.send(JSON.stringify({ tipo: "iniciar", idiomas: estado.idiomasSessao }));
+      }
+      atualizarBotoesInicio();
+    };
+    ws.onmessage = (ev) => { if (typeof ev.data === "string") tratarMensagem(JSON.parse(ev.data)); };
+    ws.onclose = (ev) => {
+      estado.conectado = false;
+      estado.pronto = false;
+      atualizarBotoesInicio();
+      if (ev.code === 4401) {
+        sessionStorage.removeItem("gmp.senha");
+        $("senha-box").hidden = false;
+        $("status-modelos").textContent = "Senha incorreta. Digite a senha e pressione Enter.";
+        $("status-modelos").className = "status erro";
+        return;
+      }
+      if (estado.reuniaoAtiva) overlay("Conexão com o servidor perdida.<div class='pequeno'>Tentando reconectar…</div>");
+      else { $("status-modelos").textContent = "Sem conexão com o servidor. Tentando novamente…"; $("status-modelos").className = "status erro"; }
+      estado.tentativasWs++;
+      setTimeout(conectar, Math.min(5000, 500 * estado.tentativasWs));
+    };
+    ws.onerror = () => {};
+  }
+
+  function tratarMensagem(m) {
+    switch (m.tipo) {
+      case "ola":
+        estado.idiomasDisponiveis = m.idiomas_disponiveis;
+        estado.portugues = m.portugues;
+        estado.porCodigo = new Map(m.idiomas_disponiveis.map(i => [i.codigo, i]));
+        estado.porCodigo.set(m.portugues.codigo, m.portugues);
+        estado.totalFalas = m.sessao.total_falas;
+        $("versao-topo").textContent = "v" + m.versao;
+        if (!estado.selecionados.length) estado.selecionados = [...(m.sessao.idiomas_visitante || [])];
+        if (!estado.reuniaoAtiva) {
+          estado.idiomasSessao = [...(m.sessao.idiomas_visitante || [])];
+          renderizarLista();
+        }
+        aplicarEstado(m.estado);
+        atualizarInfoModelos(m.modelos);
+        if (estado.reuniaoAtiva) { montarCabecalhos(); carregarHistorico(m.historico); }
+        break;
+      case "estado": aplicarEstado(m); break;
+      case "sessao":
+        estado.idiomasSessao = m.idiomas || [];
+        estado.totalFalas = m.sessao.total_falas;
+        if (estado.reuniaoAtiva) { montarCabecalhos(); rerenderizarTudo(); }
+        break;
+      case "historico": carregarHistorico(m.falas); break;
+      case "parcial": mostrarParcial(m); break;
+      case "fala": mostrarFala(m); break;
+      case "cancelar": removerFala(m.id); break;
+      case "limpar": limparFalas(); break;
+      case "erro": toast(m.mensagem, true, 7000); break;
+      case "aviso": toast(m.mensagem, false, 6000); break;
+    }
+  }
+
+  function atualizarInfoModelos(modelos) {
+    if (!modelos || !modelos.whisper) { $("info-modelos").textContent = ""; $("rodape-info").textContent = ""; return; }
+    const disp = modelos.dispositivo === "cuda" ? "GPU" : "CPU";
+    const txt = `Reconhecimento: Whisper ${modelos.whisper} (${disp}) · Tradução: ${modelos.traducao}`;
+    $("info-modelos").textContent = txt;
+    $("rodape-info").textContent = txt;
+  }
+
+  function aplicarEstado(e) {
+    estado.pronto = !!e.pronto;
+    estado.pausado = !!e.pausado;
+    const st = $("status-modelos");
+    if (e.erro) { st.textContent = e.erro; st.className = "status erro"; }
+    else if (e.pronto) { st.textContent = "Pronto para começar."; st.className = "status ok"; }
+    else { st.textContent = e.mensagem || "Carregando…"; st.className = "status"; }
+    atualizarBotoesInicio();
+
+    // indicadores da tela principal
+    const ind = $("ind-estado");
+    ind.className = "ind";
+    if (!e.pronto) { ind.textContent = e.mensagem || "carregando…"; ind.classList.add("processando"); }
+    else if (e.pausado) { ind.textContent = "pausado"; ind.classList.add("pausado"); }
+    else if (e.processando === "traduzindo") { ind.textContent = "traduzindo…"; ind.classList.add("processando"); }
+    else if (e.processando === "transcrevendo") { ind.textContent = "transcrevendo…"; ind.classList.add("processando"); }
+    else if (e.falando) { ind.textContent = "ouvindo…"; ind.classList.add("ouvindo"); }
+    else { ind.textContent = "aguardando fala"; }
+    $("btn-pausar").textContent = e.pausado ? "Retomar" : "Pausar";
+    const av = $("ind-aviso");
+    if (e.aviso) { av.textContent = e.aviso; av.hidden = false; } else { av.hidden = true; }
+  }
+
+  // ------------------------------------------------------------------
+  // Tela principal: colunas e falas
+  // ------------------------------------------------------------------
+  const usaAbas = () => estado.idiomasSessao.length >= 3;
+  function colunas() {
+    // Lista de códigos de idioma, um por coluna (português sempre à esquerda)
+    if (usaAbas()) return ["pt", estado.idiomasSessao[Math.min(estado.abaAtiva, estado.idiomasSessao.length - 1)]];
+    return ["pt", ...estado.idiomasSessao];
+  }
+  function montarCabecalhos() {
+    const cab = $("cabecalhos");
+    cab.innerHTML = "";
+    const cols = colunas();
+    const grade = `repeat(${cols.length}, minmax(0, 1fr))`;
+    cab.style.gridTemplateColumns = grade;
+    const pt = infoIdioma("pt");
+    cab.appendChild(celulaCabecalho(pt, "pt"));
+    if (usaAbas()) {
+      const abas = document.createElement("div");
+      abas.className = "abas";
+      estado.idiomasSessao.forEach((cod, k) => {
+        const i = infoIdioma(cod);
+        const a = document.createElement("div");
+        a.className = "aba cabecalho vis" + (k === estado.abaAtiva ? " ativa" : "");
+        a.innerHTML = `<span class="tecla">${k + 1}</span>${i.nome_pt.toUpperCase()} · <span class="nativo" lang="${i.bcp47}">${i.nome_nativo}</span>`;
+        a.onclick = () => { estado.abaAtiva = k; montarCabecalhos(); rerenderizarTudo(); };
+        abas.appendChild(a);
+      });
+      cab.appendChild(abas);
+    } else {
+      for (const cod of estado.idiomasSessao) cab.appendChild(celulaCabecalho(infoIdioma(cod), "vis"));
+    }
+    for (const l of $("falas").querySelectorAll(".linha")) l.style.gridTemplateColumns = grade;
+  }
+  function celulaCabecalho(i, classe) {
+    const el = document.createElement("div");
+    el.className = "cabecalho " + classe;
+    el.innerHTML = `${i.nome_pt.toUpperCase()} · <span class="nativo" lang="${i.bcp47}">${i.nome_nativo}</span>`;
+    return el;
+  }
+
+  function celulaTexto(texto, classe, idioma, meta) {
+    const el = document.createElement("div");
+    el.className = "celula " + classe;
+    if (!texto) { el.classList.add("vazia"); el.textContent = "—"; return el; }
+    if (meta) { const m = document.createElement("span"); m.className = "meta"; m.innerHTML = meta; el.appendChild(m); }
+    const t = document.createElement("span");
+    t.setAttribute("dir", "auto");
+    if (idioma) t.setAttribute("lang", idioma.bcp47 || idioma.codigo);
+    t.textContent = texto;
+    el.appendChild(t);
+    return el;
+  }
+
+  function preencherLinha(el, f, parcial) {
+    el.innerHTML = "";
+    el.style.gridTemplateColumns = `repeat(${colunas().length}, minmax(0, 1fr))`;
+    const cols = colunas();
+    const falante = infoIdioma(f.idioma);
+    const horaMeta = f.hora ? `${f.hora}` : "";
+    const chipFora = f.fora_da_sessao ? `<span class="chip-fora">idioma fora da sessão: ${f.rotulo}</span>` : "";
+    const originalEmPt = f.coluna === "portugues";
+    const trad = f.traducoes || {};
+
+    cols.forEach((cod, k) => {
+      let celula;
+      if (cod === "pt") {
+        if (originalEmPt) celula = celulaTexto(f.texto || f.original, "original", falante, parcial ? "" : `${horaMeta} · ORIGINAL`);
+        else celula = celulaTexto(trad.pt || "", "traducao", infoIdioma("pt"), parcial ? "" : `${horaMeta} · TRADUÇÃO`);
+        if (!parcial && !originalEmPt && !trad.pt && f.erro) celula = celulaTexto(f.erro, "erro", null, "");
+      } else {
+        if (originalEmPt) {
+          // em parciais a tradução (quando o servidor a envia) aparece em itálico e vai sendo atualizada
+          celula = celulaTexto(trad[cod] || "", "traducao", infoIdioma(cod), parcial ? "" : `${horaMeta} · TRADUÇÃO`);
+          if (!parcial && !trad[cod] && f.erro) celula = celulaTexto(f.erro, "erro", null, "");
+        } else if (f.idioma === cod || usaAbas() || (f.fora_da_sessao && k === 1)) {
+          // coluna do idioma falado (ou primeira coluna de visitante quando o idioma é de fora)
+          const meta = parcial ? "" : `${horaMeta} · ORIGINAL${(f.idioma !== cod) ? " · " + f.rotulo : ""}${chipFora}`;
+          celula = celulaTexto(f.texto || f.original, "original", falante, meta);
+        } else {
+          celula = celulaTexto("", "vazia", null, "");
+        }
+      }
+      el.appendChild(celula);
+    });
+  }
+
+  function obterLinha(id, criar = true) {
+    let reg = estado.falas.get(id);
+    if (!reg && criar) {
+      const el = document.createElement("div");
+      el.className = "linha";
+      el.dataset.id = id;
+      $("falas").appendChild(el);
+      reg = { el, dados: null };
+      estado.falas.set(id, reg);
+    }
+    return reg;
+  }
+  function marcarAtual(id) {
+    if (estado.ultimoId !== null && estado.ultimoId !== id) {
+      const ant = estado.falas.get(estado.ultimoId);
+      if (ant) ant.el.classList.remove("atual");
+    }
+    const reg = estado.falas.get(id);
+    if (reg) reg.el.classList.add("atual");
+    estado.ultimoId = id;
+  }
+  function mostrarParcial(m) {
+    const reg = obterLinha(m.id);
+    reg.dados = m;
+    reg.el.classList.add("parcial");
+    preencherLinha(reg.el, m, true);
+    marcarAtual(m.id);
+    mostrarIdiomaDetectado(m);
+    rolarParaFim();
+  }
+  function mostrarFala(f) {
+    const reg = obterLinha(f.id);
+    reg.dados = f;
+    reg.el.classList.remove("parcial");
+    preencherLinha(reg.el, f, false);
+    marcarAtual(f.id);
+    mostrarIdiomaDetectado(f);
+    estado.totalFalas++;
+    rolarParaFim();
+    podarHistorico();
+  }
+  function mostrarIdiomaDetectado(f) {
+    const el = $("ind-idioma");
+    el.textContent = "idioma: " + f.rotulo;
+    el.hidden = false;
+  }
+  function removerFala(id) {
+    const reg = estado.falas.get(id);
+    if (!reg) return;
+    reg.el.remove();
+    estado.falas.delete(id);
+    if (estado.ultimoId === id) estado.ultimoId = null;
+  }
+  function limparFalas() {
+    $("falas").innerHTML = "";
+    estado.falas.clear();
+    estado.ultimoId = null;
+    estado.totalFalas = 0;
+    $("ind-idioma").hidden = true;
+  }
+  function carregarHistorico(falas) {
+    limparFalas();
+    for (const f of falas || []) {
+      const reg = obterLinha(f.id);
+      reg.dados = f;
+      preencherLinha(reg.el, f, false);
+      estado.ultimoId = f.id;
+    }
+    estado.totalFalas = (falas || []).length;
+    if (estado.ultimoId !== null) marcarAtual(estado.ultimoId);
+    rolarParaFim(true);
+  }
+  function rerenderizarTudo() {
+    for (const [id, reg] of estado.falas) {
+      if (reg.dados) preencherLinha(reg.el, reg.dados, reg.el.classList.contains("parcial"));
+    }
+  }
+  function podarHistorico() {
+    // Mantém a tela leve: no máximo 300 falas visíveis (a ata completa fica no servidor)
+    while (estado.falas.size > 300) {
+      const primeiro = estado.falas.keys().next().value;
+      removerFala(primeiro);
+    }
+  }
+  // Rolagem: segue a fala mais recente, a não ser que o operador tenha subido para ler o histórico
+  let seguindo = true;
+  const falasEl = $("falas");
+  falasEl.addEventListener("scroll", () => {
+    const distancia = falasEl.scrollHeight - falasEl.scrollTop - falasEl.clientHeight;
+    seguindo = distancia < 120;
+    $("btn-ir-fim").hidden = seguindo;
+  });
+  function rolarParaFim(forcar = false) {
+    if (seguindo || forcar) {
+      requestAnimationFrame(() => { falasEl.scrollTop = falasEl.scrollHeight; });
+    }
+  }
+  $("btn-ir-fim").onclick = () => { seguindo = true; rolarParaFim(true); $("btn-ir-fim").hidden = true; };
+
+  // ------------------------------------------------------------------
+  // Ações: iniciar, pausar, idiomas, exportar, tela cheia
+  // ------------------------------------------------------------------
+  function entrarTelaCheia() {
+    const el = document.documentElement;
+    if (!document.fullscreenElement && el.requestFullscreen) el.requestFullscreen().catch(() => {});
+  }
+  function sairTelaCheia() {
+    if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => {});
+  }
+  function iniciarReuniao(nova) {
+    if (!estado.selecionados.length) { toast("Escolha pelo menos um idioma do visitante.", true); return; }
+    estado.idiomasSessao = [...estado.selecionados];
+    estado.abaAtiva = 0;
+    estado.reuniaoAtiva = true;
+    estado.modoTroca = false;
+    $("tela-inicial").hidden = true;
+    $("tela-principal").hidden = false;
+    montarCabecalhos();
+    if (nova) limparFalas();
+    enviar({ tipo: "iniciar", idiomas: estado.idiomasSessao, nova_reuniao: !!nova });
+    entrarTelaCheia();
+    if (estado.audioCtx && estado.audioCtx.state === "suspended") estado.audioCtx.resume();
+  }
+  $("btn-iniciar").onclick = () => {
+    if (estado.modoTroca) { aplicarTrocaIdiomas(); return; }
+    iniciarReuniao(estado.totalFalas > 0);
+  };
+  $("btn-continuar").onclick = () => iniciarReuniao(false);
+  $("btn-cancelar-troca").onclick = () => fecharTrocaIdiomas();
+
+  function abrirTrocaIdiomas() {
+    estado.modoTroca = true;
+    estado.selecionados = [...estado.idiomasSessao];
+    $("tela-inicial").hidden = false;
+    $("tela-principal").hidden = true;
+    renderizarLista();
+    atualizarBotoesInicio();
+    $("busca").focus();
+  }
+  function fecharTrocaIdiomas() {
+    estado.modoTroca = false;
+    $("tela-inicial").hidden = true;
+    $("tela-principal").hidden = false;
+    atualizarBotoesInicio();
+  }
+  function aplicarTrocaIdiomas() {
+    if (!estado.selecionados.length) { toast("Escolha pelo menos um idioma.", true); return; }
+    estado.idiomasSessao = [...estado.selecionados];
+    estado.abaAtiva = 0;
+    enviar({ tipo: "idiomas", idiomas: estado.idiomasSessao });
+    fecharTrocaIdiomas();
+    montarCabecalhos();
+    rerenderizarTudo();
+    entrarTelaCheia();
+    toast("Idiomas da sessão: PORTUGUÊS + " + estado.idiomasSessao.map(rotulo).join(" + "));
+  }
+
+  function alternarPausa() {
+    if (!estado.reuniaoAtiva) return;
+    if (enviar({ tipo: estado.pausado ? "retomar" : "pausar" })) {
+      toast(estado.pausado ? "Microfone retomado." : "Microfone pausado (Espaço para retomar).", false, 2500);
+    }
+  }
+  $("btn-pausar").onclick = alternarPausa;
+  $("btn-idiomas").onclick = abrirTrocaIdiomas;
+  $("btn-tela-cheia").onclick = () => (document.fullscreenElement ? sairTelaCheia() : entrarTelaCheia());
+
+  async function exportarAta() {
+    if (!estado.reuniaoAtiva) return;
+    try {
+      const r = await fetch(`/exportar?formato=json&token=${encodeURIComponent(token())}`);
+      if (!r.ok) { const e = await r.json().catch(() => ({})); toast(e.detail || "Não foi possível exportar.", true); return; }
+      const dados = await r.json();
+      toast(`Ata salva em ${dados.pasta} (.docx e .txt). Baixando o .docx…`, false, 8000);
+      const a = document.createElement("a");
+      a.href = `/exportar?formato=docx&token=${encodeURIComponent(token())}`;
+      a.download = "";
+      document.body.appendChild(a); a.click(); a.remove();
+    } catch (e) {
+      toast("Erro ao exportar: " + e.message, true);
+    }
+  }
+  $("btn-exportar").onclick = exportarAta;
+
+  function novaReuniao() {
+    overlay(`Começar uma nova reunião?<div class="pequeno">O histórico atual sai da tela (ele continua guardado em dados/ e pode ser exportado antes).</div>
+      <div class="confirmacao"><button id="ov-sim" class="primario">Sim, nova reunião</button><button id="ov-nao">Cancelar</button></div>`);
+    $("ov-sim").onclick = () => { overlay(null); enviar({ tipo: "nova_reuniao" }); };
+    $("ov-nao").onclick = () => overlay(null);
+  }
+
+  // ------------------------------------------------------------------
+  // Atalhos de teclado
+  // ------------------------------------------------------------------
+  document.addEventListener("keydown", (ev) => {
+    const alvo = ev.target;
+    const digitando = alvo && (alvo.tagName === "INPUT" || alvo.tagName === "SELECT" || alvo.tagName === "TEXTAREA");
+    if (ev.key === "Escape") {
+      if (!$("overlay").hidden && $("ov-nao")) { overlay(null); return; }
+      if (estado.modoTroca) { fecharTrocaIdiomas(); return; }
+      sairTelaCheia();
+      return;
+    }
+    if (ev.key === "Enter" && alvo === $("senha")) {
+      sessionStorage.setItem("gmp.senha", $("senha").value);
+      $("senha-box").hidden = true;
+      conectar();
+      return;
+    }
+    if (digitando) return;
+    switch (ev.key) {
+      case " ": ev.preventDefault(); alternarPausa(); break;
+      case "e": case "E": exportarAta(); break;
+      case "l": case "L": if (estado.reuniaoAtiva && !estado.modoTroca) abrirTrocaIdiomas(); break;
+      case "f": case "F": document.fullscreenElement ? sairTelaCheia() : entrarTelaCheia(); break;
+      case "n": case "N": if (estado.reuniaoAtiva) novaReuniao(); break;
+      case "+": case "=": escala = Math.min(2.2, escala + 0.1); localStorage.setItem("gmp.escala", escala); aplicarEscala(); break;
+      case "-": case "_": escala = Math.max(0.6, escala - 0.1); localStorage.setItem("gmp.escala", escala); aplicarEscala(); break;
+      default:
+        if (/^[1-9]$/.test(ev.key) && usaAbas() && estado.reuniaoAtiva) {
+          const k = parseInt(ev.key, 10) - 1;
+          if (k < estado.idiomasSessao.length) { estado.abaAtiva = k; montarCabecalhos(); rerenderizarTudo(); }
+        }
+    }
+  });
+  window.addEventListener("beforeunload", () => {
+    if (estado.ws && estado.ws.readyState === WebSocket.OPEN) estado.ws.send(JSON.stringify({ tipo: "fim_audio" }));
+  });
+
+  // ------------------------------------------------------------------
+  // Início
+  // ------------------------------------------------------------------
+  async function inicio() {
+    try {
+      const r = await fetch("/info");
+      const info = await r.json();
+      estado.exigeSenha = !!info.exige_senha;
+      estado.audioCfg = info.audio || {};
+      aplicarSensibilidade(sensibilidadeAtual(), false);
+      if (info.logo) {   // logo em web/logo.png: mostra a imagem no lugar do nome em texto
+        for (const id of ["logo-inicial", "logo-barra"]) $(id).hidden = false;
+        for (const id of ["marca-inicial", "marca-barra"]) $(id).hidden = true;
+      }
+      if (estado.exigeSenha && !token()) {
+        $("senha-box").hidden = false;
+        $("status-modelos").textContent = "Digite a senha de acesso e pressione Enter.";
+        $("senha").focus();
+      } else {
+        conectar();
+      }
+    } catch (e) {
+      $("status-modelos").textContent = "Servidor não encontrado. Tentando novamente…";
+      setTimeout(inicio, 2000);
+      return;
+    }
+    iniciarMicrofone();
+    if (navigator.mediaDevices && navigator.mediaDevices.addEventListener) {
+      navigator.mediaDevices.addEventListener("devicechange", listarMicrofones);
+    }
+  }
+  inicio();
+})();
+</script>
+</body>
+</html>

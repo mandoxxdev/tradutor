@@ -1,0 +1,3 @@
+# Motor de tradução alternativo (mais leve em disco, porém puxa PyTorch via stanza).
+# Instale com: instalar.bat argos   (ou  ./instalar.sh argos  no Linux)
+argostranslate>=1.9,<2

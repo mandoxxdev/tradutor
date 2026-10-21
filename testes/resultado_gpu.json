@@ -1,0 +1,59 @@
+{
+  "whisper": "large-v3-turbo",
+  "dispositivo": "cuda",
+  "tipo_computo": "int8_float16",
+  "traducao": "NLLB-200 distilled 1.3B int8 (cuda)",
+  "tempo_medio_s": 1.083,
+  "falhas": [],
+  "casos": [
+    {
+      "arquivo": "pt.wav",
+      "idioma": "pt",
+      "original": "Bom dia a todos e sejam bem-vindos à nossa fábrica. Hoje vamos apresentar a nova linha de moinhos e discutir o cronograma de entrega dos equipamentos.",
+      "traducoes": {
+        "it": "Buongiorno a tutti e benvenuti al nostro stabilimento. Oggi presenteremo la nuova linea di mulini e discuteremo del calendario di consegna delle attrezzature.",
+        "en": "Good morning everyone and welcome to our factory. Today we're going to introduce the new line of mills and discuss the timetable for delivery of equipment."
+      },
+      "tempos": [
+        {
+          "audio_s": 8.03,
+          "transcricao_s": 0.64,
+          "traducao_s": 0.86,
+          "total_s": 1.5
+        }
+      ]
+    },
+    {
+      "arquivo": "it.wav",
+      "idioma": "it",
+      "original": "Buongiorno a tutti e grazie per l'invito. Siamo molto interessati alla vostra linea di macchine e vorremmo conoscere i tempi di consegna.",
+      "traducoes": {
+        "pt": "Bom dia a todos e obrigado pelo convite. Estamos muito interessados na sua linha de máquinas e gostaríamos de saber os prazos de entrega."
+      },
+      "tempos": [
+        {
+          "audio_s": 6.43,
+          "transcricao_s": 0.63,
+          "traducao_s": 0.43,
+          "total_s": 1.06
+        }
+      ]
+    },
+    {
+      "arquivo": "en.wav",
+      "idioma": "en",
+      "original": "Good afternoon, everyone. We would like to know the delivery time for the equipment and the warranty conditions for the new machines.",
+      "traducoes": {
+        "pt": "Boa tarde a todos. Gostaríamos de saber o prazo de entrega dos equipamentos e as condições de garantia das máquinas novas."
+      },
+      "tempos": [
+        {
+          "audio_s": 6.62,
+          "transcricao_s": 0.32,
+          "traducao_s": 0.37,
+          "total_s": 0.69
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+.venv/
+modelos/
+atas/
+dados/
+__pycache__/
+*.pyc
+certificado/
+testes/resultado_ultimo_teste.json
+*.log

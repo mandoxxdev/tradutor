@@ -1,0 +1,3 @@
+# Bibliotecas NVIDIA necessárias para usar a GPU (instaladas só quando há GPU NVIDIA).
+nvidia-cublas-cu12>=12.4,<13
+nvidia-cudnn-cu12>=9,<10

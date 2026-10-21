@@ -1,0 +1,53 @@
+{
+  "servidor": {
+    "host": "127.0.0.1",
+    "porta": 8765,
+    "senha_acesso": "",
+    "abrir_navegador": true,
+    "https": {
+      "ativo": false,
+      "certificado": "certificado/cert.pem",
+      "chave": "certificado/chave.pem"
+    }
+  },
+  "transcricao": {
+    "modelo": "auto",
+    "dispositivo": "auto",
+    "tipo_computo": "auto",
+    "threads_cpu": 0,
+    "beam_size": "auto",
+    "parciais": "auto",
+    "intervalo_parcial_s": 1.5,
+    "traduzir_parciais": "auto",
+    "permitir_fora_da_sessao": false
+  },
+  "audio": {
+    "ganho_maximo": 4,
+    "supressao_ruido": true,
+    "ganho_automatico_navegador": true
+  },
+  "traducao": {
+    "motor": "nllb",
+    "modelo": "auto",
+    "dispositivo": "auto",
+    "beam_size": 2,
+    "threads_cpu": 0
+  },
+  "vad": {
+    "limiar_inicio": 0.4,
+    "limiar_fim": 0.3,
+    "silencio_fim_ms": 700,
+    "fala_minima_ms": 300,
+    "pre_fala_ms": 300,
+    "duracao_maxima_s": 20,
+    "corte_suave_apos_s": 10
+  },
+  "sessao": {
+    "idiomas_visitante": [
+      "it"
+    ]
+  },
+  "modelos": {
+    "pasta": "modelos"
+  }
+}
