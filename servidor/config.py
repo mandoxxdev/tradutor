@@ -97,6 +97,13 @@ def carregar() -> dict:
         cfg["servidor"]["porta"] = int(os.environ["GMP_PORTA"])
     if os.environ.get("GMP_SENHA") is not None:
         cfg["servidor"]["senha_acesso"] = os.environ["GMP_SENHA"]
+    if os.environ.get("GMP_WHISPER_MODELO"):
+        cfg["transcricao"]["modelo"] = os.environ["GMP_WHISPER_MODELO"]
+    if os.environ.get("GMP_NLLB_MODELO"):
+        cfg["traducao"]["modelo"] = os.environ["GMP_NLLB_MODELO"]
+    if os.environ.get("GMP_DISPOSITIVO"):
+        cfg["transcricao"]["dispositivo"] = os.environ["GMP_DISPOSITIVO"]
+        cfg["traducao"]["dispositivo"] = os.environ["GMP_DISPOSITIVO"]
     return cfg
 
 

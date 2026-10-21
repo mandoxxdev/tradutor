@@ -164,6 +164,27 @@ outra máquina (mais forte) e o notebook da sala só abre a página.
 Observação: nesse caso o áudio trafega pela rede entre o notebook e o seu servidor; use
 apenas servidores sob seu controle.
 
+### Coolify (ou qualquer Docker)
+
+O repositório tem um `Dockerfile`. No Coolify, na aplicação:
+
+1. **Configuration > General > Build Pack**: troque de *Nixpacks* para **Dockerfile**.
+   (Com Nixpacks o container fica reiniciando com `/bin/bash: -c: option requires an argument`.)
+2. **Ports Exposes**: `8765`.
+3. **Domains**: coloque um domínio (o Coolify gera o HTTPS sozinho, o que libera o microfone
+   no navegador).
+4. **Persistent Storage**: adicione um volume com destino `/app/modelos` (evita baixar os
+   modelos a cada deploy). Opcional: outro em `/app/dados` para guardar o histórico.
+5. **Environment Variables**: `GMP_SENHA` com uma senha (o servidor fica público na internet).
+   Opcionais: `GMP_WHISPER_MODELO` (`small`, `medium`, `large-v3-turbo`), `GMP_NLLB_MODELO`
+   (`600M`, `1.3B`), `GMP_DISPOSITIVO` (`cpu`, `cuda`).
+6. **Deploy**. O primeiro início baixa os modelos (acompanhe em *Logs*); depois abra o domínio.
+
+Servidor só com CPU usa por padrão Whisper `small` + NLLB `600M` (precisa de 4 GB de RAM; espere
+de 3 a 10 s por frase, conforme o processador). Para a qualidade do notebook com GPU, o servidor
+precisa de placa NVIDIA: defina a variável de build `GPU=1` e, em *Custom Docker Options*,
+`--gpus all` (o servidor precisa do driver NVIDIA e do NVIDIA Container Toolkit).
+
 ## Privacidade
 
 Reconhecimento de voz (Whisper) e tradução (NLLB-200) rodam localmente com modelos de

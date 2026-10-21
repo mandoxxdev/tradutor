@@ -1,0 +1,10 @@
+.git
+.venv
+modelos
+dados
+atas
+certificado
+**/__pycache__
+**/*.pyc
+testes/resultado_*.json
+*.log

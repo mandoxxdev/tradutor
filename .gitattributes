@@ -1,0 +1,4 @@
+# Scripts de Linux/Docker sempre com LF; scripts do Windows com CRLF
+*.sh   text eol=lf
+*.bat  text eol=crlf
+Dockerfile text eol=lf
